@@ -1,5 +1,4 @@
 import argparse
-import ctypes
 import functools
 import io
 import math
@@ -16,7 +15,7 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "capture"))
-from hinge_capture import grab, photo_comment, resolve_provider, window_region
+from hinge_capture import photo_comment, resolve_provider, window_png
 
 AVD = os.environ.get("HINGE_AVD", "Medium_Phone_API_35")
 PORT = int(os.environ.get("HINGE_CONSOLE_PORT", "5554"))
@@ -123,9 +122,7 @@ def flick(back_ok):
 
 
 def screen():
-    hwnd = ctypes.windll.user32.FindWindowW(None, f"{WINDOW}:{PORT}")
-    ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x13)
-    return grab(window_region(WINDOW), 1)
+    return window_png(f"{WINDOW}:{PORT}")
 
 
 def frame(png):

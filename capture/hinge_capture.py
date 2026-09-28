@@ -206,6 +206,56 @@ def list_windows() -> None:
     user32.EnumWindows(visit, 0)
 
 
+def window_png(title: str) -> bytes:
+    import ctypes
+    from ctypes import wintypes
+
+    from PIL import Image
+
+    u32, gdi = ctypes.windll.user32, ctypes.windll.gdi32
+    u32.SetProcessDPIAware()
+    u32.FindWindowW.restype = wintypes.HWND
+    u32.GetDC.restype = wintypes.HDC
+    u32.GetDC.argtypes = [wintypes.HWND]
+    u32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    u32.PrintWindow.argtypes = [wintypes.HWND, wintypes.HDC, wintypes.UINT]
+    gdi.CreateCompatibleDC.restype = wintypes.HDC
+    gdi.CreateCompatibleDC.argtypes = [wintypes.HDC]
+    gdi.CreateCompatibleBitmap.restype = wintypes.HBITMAP
+    gdi.CreateCompatibleBitmap.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]
+    gdi.SelectObject.restype = wintypes.HGDIOBJ
+    gdi.SelectObject.argtypes = [wintypes.HDC, wintypes.HGDIOBJ]
+    gdi.GetDIBits.argtypes = [wintypes.HDC, wintypes.HBITMAP, wintypes.UINT, wintypes.UINT, ctypes.c_void_p, ctypes.c_void_p, wintypes.UINT]
+    gdi.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    gdi.DeleteDC.argtypes = [wintypes.HDC]
+
+    hwnd = u32.FindWindowW(None, title)
+    if not hwnd:
+        raise RuntimeError(f"no window titled {title!r} - is the emulator running?")
+    rect = wintypes.RECT()
+    u32.GetClientRect(hwnd, ctypes.byref(rect))
+    w, h = rect.right, rect.bottom
+    if w < 50 or h < 50:
+        raise RuntimeError(f"window {title!r} is {w}x{h} - minimized?")
+    hdc = u32.GetDC(hwnd)
+    mdc = gdi.CreateCompatibleDC(hdc)
+    bmp = gdi.CreateCompatibleBitmap(hdc, w, h)
+    try:
+        gdi.SelectObject(mdc, bmp)
+        if not u32.PrintWindow(hwnd, mdc, 3):
+            raise RuntimeError(f"could not capture window {title!r}")
+        header = (ctypes.c_uint32 * 10)(40, w, (-h) & 0xFFFFFFFF, 1 | (32 << 16), 0, 0, 0, 0, 0, 0)
+        buf = ctypes.create_string_buffer(w * h * 4)
+        gdi.GetDIBits(mdc, bmp, 0, h, buf, header, 0)
+    finally:
+        gdi.DeleteObject(bmp)
+        gdi.DeleteDC(mdc)
+        u32.ReleaseDC(hwnd, hdc)
+    out = io.BytesIO()
+    Image.frombuffer("RGBA", (w, h), buf, "raw", "BGRA", 0, 1).convert("RGB").save(out, "PNG")
+    return out.getvalue()
+
+
 def grab(region: tuple[int, int, int, int] | None, monitor: int) -> bytes:
     import mss
     import mss.tools
