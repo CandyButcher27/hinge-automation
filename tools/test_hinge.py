@@ -1,3 +1,4 @@
+import pytest
 from PIL import Image, ImageDraw
 
 import hinge
@@ -95,3 +96,30 @@ def test_find_send_scrolls_until_the_pill_shows(monkeypatch):
     monkeypatch.setattr(hinge, "pause", lambda *a: None)
     assert hinge.find_send() == 700
     assert len(strokes) == 2
+
+
+@pytest.fixture
+def app(tmp_path, monkeypatch):
+    sent = []
+    monkeypatch.setattr(hinge, "PEOPLE", tmp_path / "people")
+    monkeypatch.setattr(hinge, "LOG", tmp_path / "people" / "likes.log")
+    hinge.PEOPLE.mkdir()
+    for name in ("rewind", "skip", "pause"):
+        monkeypatch.setattr(hinge, name, lambda *a: None)
+    monkeypatch.setattr(hinge, "wander", lambda folder: folder.mkdir(exist_ok=True) or [400])
+    monkeypatch.setattr(hinge, "open_sheet", lambda hy, comment: sent.append(comment) or 700)
+    monkeypatch.setattr(hinge, "send_like", lambda py: False)
+    return sent
+
+
+def test_auto_likes_without_asking_until_the_cap(app):
+    def ask(q):
+        raise AssertionError("auto mode asked")
+    hinge.run(2, False, False, auto=True, ask=ask, say=lambda m: None)
+    assert len(app) == 2
+    assert hinge.liked_today() == 2
+
+
+def test_run_stops_when_asked_to(app):
+    hinge.run(5, False, False, auto=True, say=lambda m: None, stopped=lambda: len(app) >= 1)
+    assert len(app) == 1

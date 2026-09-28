@@ -392,12 +392,12 @@ def liked_today():
     return sum(line.startswith(today) for line in LOG.read_text().splitlines()) if LOG.exists() else 0
 
 
-def run(cap, no_comment, full, ask=input, say=print):
+def run(cap, no_comment, full, auto=False, ask=input, say=print, stopped=lambda: False):
     comments = [None] if no_comment else [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
     for c in comments:
         if c and not (c.isascii() and c.isprintable()):
             raise Stop(f"comment {c!r} is not printable ASCII")
-    while True:
+    while not stopped():
         if liked_today() >= cap:
             say(f"daily cap of {cap} likes reached")
             return
@@ -415,6 +415,10 @@ def run(cap, no_comment, full, ask=input, say=print):
             here = wander(tmp)
             question = f"stopped here, {len(here)} photo(s) on screen. like one?"
         ans = ""
+        if auto:
+            say(f"{question} auto: yes")
+            pause(4, 12)
+            ans = "y"
         while ans not in ("y", "n", "q"):
             ans = ask(f"{question} [y/n/q] ").strip().lower()
         if ans == "q":
@@ -463,6 +467,7 @@ def main():
     s.add_argument("--cap", type=int, default=5)
     s.add_argument("--no-comment", action="store_true")
     s.add_argument("--full", action="store_true")
+    s.add_argument("--auto", action="store_true")
     a = p.parse_args()
 
     try:
@@ -475,7 +480,7 @@ def main():
             open_sheet(a.heart_y / SY, a.comment)
             shot()
         elif a.cmd == "run":
-            run(a.cap, a.no_comment, a.full, say=functools.partial(print, flush=True))
+            run(a.cap, a.no_comment, a.full, a.auto, say=functools.partial(print, flush=True))
         else:
             tap(a.x, a.y)
             shot()
