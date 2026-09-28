@@ -392,17 +392,17 @@ def liked_today():
     return sum(line.startswith(today) for line in LOG.read_text().splitlines()) if LOG.exists() else 0
 
 
-def run(cap, no_comment, full):
+def run(cap, no_comment, full, ask=input, say=print):
     comments = [None] if no_comment else [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
     for c in comments:
         if c and not (c.isascii() and c.isprintable()):
             raise Stop(f"comment {c!r} is not printable ASCII")
     while True:
         if liked_today() >= cap:
-            print(f"daily cap of {cap} likes reached")
+            say(f"daily cap of {cap} likes reached")
             return
         tmp = Path(tempfile.mkdtemp())
-        print("scanning profile...", flush=True)
+        say("scanning profile...")
         rewind()
         if full:
             views = scroll(tmp)
@@ -416,7 +416,7 @@ def run(cap, no_comment, full):
             question = f"stopped here, {len(here)} photo(s) on screen. like one?"
         ans = ""
         while ans not in ("y", "n", "q"):
-            ans = input(f"{question} [y/n/q] ").strip().lower()
+            ans = ask(f"{question} [y/n/q] ").strip().lower()
         if ans == "q":
             shutil.rmtree(tmp)
             return
@@ -431,7 +431,7 @@ def run(cap, no_comment, full):
             hy = goto(photos[{"first": 0, "second": 1, "last": -1}[which]], top, views[-1])
         else:
             which, hy = "on-screen", random.choice(here)
-        print(f"liking the {which} photo: {comment or 'no comment'!r}")
+        say(f"liking the {which} photo: {comment or 'no comment'!r}")
         rose = send_like(open_sheet(hy, comment))
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         said = f'comment: "{comment}"' if comment else "no comment"
@@ -443,7 +443,7 @@ def run(cap, no_comment, full):
             f"{'The Rose sheet appeared; Send Like anyway was tapped.' if rose else 'No Rose prompt appeared.'}\n", encoding="utf-8")
         with LOG.open("a", encoding="utf-8") as f:
             f.write(f"{ts}\t{folder.name}\t{which}\t{comment or ''}\n")
-        print(f"sent ({liked_today()}/{cap} today), saved to {folder}")
+        say(f"sent ({liked_today()}/{cap} today), saved to {folder}")
         pause(3, 8)
 
 
@@ -475,7 +475,7 @@ def main():
             open_sheet(a.heart_y / SY, a.comment)
             shot()
         elif a.cmd == "run":
-            run(a.cap, a.no_comment, a.full)
+            run(a.cap, a.no_comment, a.full, say=functools.partial(print, flush=True))
         else:
             tap(a.x, a.y)
             shot()
