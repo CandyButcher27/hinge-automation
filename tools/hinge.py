@@ -188,24 +188,32 @@ def offset(a, b):
     return d
 
 
+def kinds(view):
+    im, _, moving = view
+    return [(y, photo and not any(r in moving for r in range(y - 120, y - 40))) for y, photo in hearts(im)]
+
+
+def visible(view):
+    return [y for y, ok in kinds(view) if ok and 150 <= y <= 780]
+
+
 def map_profile(views):
     ys = [0]
     for a, b in zip(views, views[1:]):
         ys.append(ys[-1] + offset(a[1], b[1]))
     seen = []
-    for top, (im, _, moving) in zip(ys, views):
-        for y, photo in hearts(im):
-            video = any(r in moving for r in range(y - 120, y - 40))
+    for top, view in zip(ys, views):
+        for y, ok in kinds(view):
             if all(abs(top + y - s) > 25 for s, _ in seen):
-                seen.append((top + y, photo and not video))
-    return ys[-1], sorted(cy for cy, photo in seen if photo)
+                seen.append((top + y, ok))
+    return ys[-1], sorted(cy for cy, ok in seen if ok)
 
 
 def goto(cy, top, view):
     for _ in range(20):
         want = cy - top
         if 150 <= want <= 780:
-            near = [y for y, photo in hearts(view[0]) if photo and abs(y - want) < 40]
+            near = [y for y in visible(view) if abs(y - want) < 40]
             if near:
                 return near[0]
         delta = max(-300, min(300, want - 450)) * SY
@@ -269,6 +277,32 @@ def scroll(folder):
     return views
 
 
+def wander(folder):
+    folder.mkdir(parents=True, exist_ok=True)
+    depth = random.randint(0, 8)
+    views, forward = [], False
+    for i in range(1, 41):
+        png, *view = look()
+        end = forward and abs(offset(views[-1][1], view[1])) <= 2
+        if not end:
+            (folder / f"{i:02}.png").write_bytes(png)
+            views.append(view)
+        if visible(view) and (i > depth or end):
+            return visible(view)
+        if end:
+            break
+        forward = flick(i > 1)
+    for _ in range(10):
+        x = random.randint(430, 700)
+        y = random.randint(600, 900)
+        drag(x, y, x + random.randint(-60, 60), y + random.randint(400, 600), random.randint(300, 600))
+        pause(0.9, 1.8)
+        ys = visible(look()[1:])
+        if ys:
+            return ys
+    raise Stop("no photo found on this profile")
+
+
 def rewind():
     prev = look()[2]
     for _ in range(15):
@@ -319,7 +353,7 @@ def liked_today():
     return sum(line.startswith(today) for line in LOG.read_text().splitlines()) if LOG.exists() else 0
 
 
-def run(cap, no_comment):
+def run(cap, no_comment, full):
     comments = [None] if no_comment else [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
     for c in comments:
         if c and not (c.isascii() and c.isprintable()):
@@ -331,14 +365,19 @@ def run(cap, no_comment):
         tmp = Path(tempfile.mkdtemp())
         print("scanning profile...", flush=True)
         rewind()
-        views = scroll(tmp)
-        top, photos = map_profile(views)
-        if not photos:
-            shutil.rmtree(tmp)
-            raise Stop("no photos found - is a profile on screen?")
+        if full:
+            views = scroll(tmp)
+            top, photos = map_profile(views)
+            if not photos:
+                shutil.rmtree(tmp)
+                raise Stop("no photos found - is a profile on screen?")
+            question = f"{len(photos)} photos. like?"
+        else:
+            here = wander(tmp)
+            question = f"stopped here, {len(here)} photo(s) on screen. like one?"
         ans = ""
         while ans not in ("y", "n", "q"):
-            ans = input(f"{len(photos)} photos. like? [y/n/q] ").strip().lower()
+            ans = input(f"{question} [y/n/q] ").strip().lower()
         if ans == "q":
             shutil.rmtree(tmp)
             return
@@ -347,10 +386,13 @@ def run(cap, no_comment):
             tap(*SKIP)
             pause(2, 6)
             continue
-        which = random.choice(["first", "second", "last"] if len(photos) > 2 else ["first", "last"])
         comment = random.choice(comments)
+        if full:
+            which = random.choice(["first", "second", "last"] if len(photos) > 2 else ["first", "last"])
+            hy = goto(photos[{"first": 0, "second": 1, "last": -1}[which]], top, views[-1])
+        else:
+            which, hy = "on-screen", random.choice(here)
         print(f"liking the {which} photo: {comment or 'no comment'!r}")
-        hy = goto(photos[{"first": 0, "second": 1, "last": -1}[which]], top, views[-1])
         rose = send_like(open_sheet(hy, comment))
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         said = f'comment: "{comment}"' if comment else "no comment"
@@ -381,6 +423,7 @@ def main():
     s = sub.add_parser("run")
     s.add_argument("--cap", type=int, default=5)
     s.add_argument("--no-comment", action="store_true")
+    s.add_argument("--full", action="store_true")
     a = p.parse_args()
 
     try:
@@ -393,7 +436,7 @@ def main():
             open_sheet(a.heart_y / SY, a.comment)
             shot()
         elif a.cmd == "run":
-            run(a.cap, a.no_comment)
+            run(a.cap, a.no_comment, a.full)
         else:
             tap(a.x, a.y)
             shot()
