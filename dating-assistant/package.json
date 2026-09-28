@@ -1,0 +1,23 @@
+{
+  "name": "dating-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local MCP server that stores profiles, preferences, conversations and drafts for Claude.",
+  "bin": { "dating-assistant": "dist/index.js" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "npm run build && node --test dist/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": { "node": ">=22.5.0" }
+}

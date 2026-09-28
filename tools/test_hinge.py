@@ -1,0 +1,97 @@
+from PIL import Image, ImageDraw
+
+import hinge
+
+PHOTOS = [400, 1300, 2300]
+PROMPT = 900
+
+
+def page():
+    im = Image.effect_noise((hinge.FW, 3000), 60).convert("RGB")
+    ImageDraw.Draw(im).rectangle((20, PROMPT - 200, 395, PROMPT + 40), fill="white")
+    w, h = hinge.HEART.size
+    for y in PHOTOS + [PROMPT]:
+        ImageDraw.Draw(im).ellipse((336, y - 24, 384, y + 24), fill="black")
+        im.paste(hinge.HEART.convert("RGB"), (346, y - h // 2))
+    return im
+
+
+def frames(tops):
+    im = page()
+    return [im.crop((0, t, hinge.FW, t + hinge.FH)) for t in tops]
+
+
+def test_offset_forward_and_back():
+    a, b = frames([500, 800])
+    assert hinge.offset(a, b) == 300
+    assert hinge.offset(b, a) == -300
+
+
+def test_map_profile_finds_photos_not_prompt():
+    tops = [0, 350, 700, 600, 950, 1300, 1650, 2000]
+    top, photos = hinge.map_profile([(f, f, set()) for f in frames(tops)])
+    assert top == tops[-1]
+    assert len(photos) == len(PHOTOS)
+    assert all(abs(p - e) <= 2 for p, e in zip(photos, PHOTOS))
+
+
+def test_still_masks_video_and_keeps_offset():
+    a, b = frames([500, 800])
+    a2, b2 = a.copy(), b.copy()
+    for im, y in ((a2, 700), (b2, 400)):
+        im.paste(Image.effect_noise((375, 150), 90).convert("RGB"), (20, y))
+    _, flat_a, moving = hinge.still(a, a2)
+    assert set(range(700, 850)) <= moving
+    _, flat_b, _ = hinge.still(b, b2)
+    assert hinge.offset(flat_a, flat_b) == 300
+
+
+def test_offset_ignores_video_that_starts_playing():
+    a, b = frames([500, 800])
+    ImageDraw.Draw(a).rectangle((20, 700, 395, 1000), fill="black")
+    b2 = b.copy()
+    b2.paste(Image.effect_noise((375, 300), 90).convert("RGB"), (20, 400))
+    _, flat_b, moving = hinge.still(b, b2)
+    assert set(range(400, 700)) <= moving
+    assert hinge.offset(a, flat_b) == 300
+
+
+def test_unmoved_treats_unmatchable_frames_as_moved():
+    a, b = frames([0, 0])
+    assert hinge.unmoved(a, b)
+    assert not hinge.unmoved(a, Image.effect_noise((hinge.FW, hinge.FH), 90).convert("RGB"))
+
+
+def test_look_waits_for_scrolling_to_settle(monkeypatch):
+    a, b = frames([500, 800])
+    shots = iter([a, b, a, a])
+    monkeypatch.setattr(hinge, "screen", lambda: next(shots))
+    monkeypatch.setattr(hinge, "frame", lambda im: im)
+    monkeypatch.setattr(hinge.time, "sleep", lambda s: None)
+    _, _, _, moving = hinge.look()
+    assert not moving
+    assert next(shots, None) is None
+
+
+def test_skip_waits_for_a_new_profile(monkeypatch):
+    old, new = frames([0, 1300])
+    shots = iter([old, old, new])
+    monkeypatch.setattr(hinge, "screen", lambda: next(shots))
+    monkeypatch.setattr(hinge, "frame", lambda im: im)
+    monkeypatch.setattr(hinge, "tap", lambda x, y: None)
+    monkeypatch.setattr(hinge, "profile_screen", lambda im: True)
+    monkeypatch.setattr(hinge.time, "sleep", lambda s: None)
+    hinge.skip()
+    assert next(shots, None) is None
+
+
+def test_find_send_scrolls_until_the_pill_shows(monkeypatch):
+    found = iter([None, None, 700])
+    strokes = []
+    monkeypatch.setattr(hinge, "screen", lambda: None)
+    monkeypatch.setattr(hinge, "frame", lambda im: im)
+    monkeypatch.setattr(hinge, "send_button", lambda im: next(found))
+    monkeypatch.setattr(hinge, "stroke", strokes.append)
+    monkeypatch.setattr(hinge, "pause", lambda *a: None)
+    assert hinge.find_send() == 700
+    assert len(strokes) == 2

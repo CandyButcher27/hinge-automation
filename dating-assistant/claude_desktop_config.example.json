@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dating-assistant": {
+      "command": "node",
+      "args": [
+        "C:\\path\\to\\hinge-automation\\dating-assistant\\dist\\index.js"
+      ]
+    }
+  }
+}
