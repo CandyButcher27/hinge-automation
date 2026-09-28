@@ -3,7 +3,7 @@
 | Page | Read it for |
 | --- | --- |
 | [getting-started.md](getting-started.md) | Supported setup, installation, first run |
-| [usage.md](usage.md) | `run` modes and flags, `prompts.txt`, the `people/` records, low-level commands |
+| [usage.md](usage.md) | The web front end, ask and auto modes, comment sources, `.env`, `prompts.txt`, the `people/` records |
 | [safety.md](safety.md) | What the tool will and will not do, other people's data, Terms of Service |
 | [anti-bot.md](anti-bot.md) | How taps, swipes, typing and pacing are made to behave like a person |
 | [architecture.md](architecture.md) | How the screen is read, how buttons are found, how input is sent |

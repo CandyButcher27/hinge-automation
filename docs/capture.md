@@ -28,7 +28,8 @@ pip install uv
 uv sync
 ```
 
-Then choose a model provider:
+Then choose a model provider. Settings can go in `.env` at the repository root
+(copy `.env.example`); variables set in your shell win:
 
 | Provider | What it needs | Default model | Override |
 | --- | --- | --- | --- |

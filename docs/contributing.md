@@ -21,8 +21,8 @@ the scroll mapping or anything in `run()` that decides what gets tapped.
 
 ## Rules for changes
 
-- A person confirms every like. Changes that like, skip or message without a
-  per-profile answer will not be merged.
+- Ask mode stays the default. Every mode, including auto, must respect the
+  daily cap and Stop. Changes that bypass either will not be merged.
 - Never tap anything that can spend money. New screens that offer a purchase
   must stop the run, not be dismissed blindly.
 - Check the screen before each irreversible tap, and raise `Stop` when it is not

@@ -4,8 +4,8 @@ This page lists every measure in `tools/hinge.py` that makes its input look and
 pace like a person using a phone, and what it cannot hide.
 
 No measure here makes automation safe. Automating Hinge breaks its Terms of
-Service, and the account can be banned. The strongest protection is the design
-itself: a person approves every like, and the daily cap is low.
+Service, and the account can be banned. The strongest protections are a low
+daily cap and, in the default ask mode, a person approving every like.
 
 ## Summary
 
@@ -18,7 +18,7 @@ itself: a person approves every like, and the daily cap is low.
 | Typing | Per-character timing from a log-normal distribution, longer gaps between words |
 | Pacing | Random pauses after every action; longer ones after Skip and after a like |
 | Choices | Random scroll depth, random photo, random comment |
-| Volume | A person answers y/n per profile; default cap of 5 likes a day |
+| Volume | Default cap of 5 likes a day; in ask mode a person answers y/n per profile |
 | Screen reading | Pixels come from the host window; nothing runs inside the device |
 | Money | Rose, Boost and subscription controls are never tapped |
 
@@ -95,21 +95,25 @@ Comments are typed one character at a time with `event text`:
 | opening the like sheet | 1.2-2.6 s |
 | Skip | 2-6 s |
 | a sent like | 3-8 s |
+| scanning a profile, in auto mode | 4-12 s before the like |
 
-A person also answers the y/n/q prompt for every profile, which adds the real
-reading time of a human between profiles.
+In ask mode a person answers the y/n/q prompt for every profile, which adds the
+real reading time of a human between profiles. Auto mode has no person, so it
+stands in a random 4-12 s reading pause instead.
 
 ## Choices
 
-- The comment is a random line from `prompts.txt`, or none with `--no-comment`.
+- The comment is a random line from `prompts.txt`, a line a vision model writes
+  about that photo (`--model`), or none (`--no-comment`).
 - The liked photo is random: any photo on screen in the default mode, or the
   first, second or last in `--full` mode.
 - Videos and prompt cards are never liked.
 
 ## Volume
 
-- `run` never likes without a `y` from the person at the keyboard.
-- `--cap` (default 5) limits likes per calendar day, counted from
+- In ask mode `run` never likes without a `y` from the person at the keyboard.
+  Auto mode likes every profile it scans.
+- `--cap` (default 5), in both modes, limits likes per calendar day, counted from
   `people/likes.log`, so it holds across restarts.
 - Nothing runs in the background or on a schedule.
 
@@ -118,6 +122,8 @@ reading time of a human between profiles.
 - Hinge marks its screens secure (`FLAG_SECURE`), so in-device screenshots are
   black. The tool does not try to disable that. It reads the emulator window
   on the Windows host instead, the same pixels you see.
+- The screenshot sent to the vision model for `--model` comments comes from the
+  same host-side grab. Nothing inside the emulator takes it.
 - No `adb shell` command, accessibility service or UI dump runs while liking.
   Nothing is installed inside the emulator besides Hinge.
 
@@ -139,6 +145,9 @@ reading time of a human between profiles.
   to recordings of real phone use.
 - **Account-level signals.** Like rate, message style, and when you are active
   are visible to Hinge no matter how input is sent. The cap and per-profile
-  confirmation are the controls for that.
+  confirmation are the controls for that. Auto mode gives up the second one:
+  liking every profile shown is a pattern a person rarely produces, so keep the
+  cap low there.
 - **Repeated comments.** A small `prompts.txt` sends the same lines to many
-  people. Keep the pool large and personal.
+  people. Keep the pool large and personal, or use `--model`, which writes a
+  different line for each photo.

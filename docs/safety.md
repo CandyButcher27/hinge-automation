@@ -8,16 +8,18 @@ account. The authors are not affiliated with Hinge or Match Group.
 
 ## What the tool will do
 
-- Scroll the profile on screen and ask you before every like.
-- Send a like, with or without a comment, only after you type `y`.
-- Tap **Skip** only after you type `n`.
-- Stop for the day at `--cap` likes (default 5).
+- In ask mode (the default): scroll each profile and wait for your `y`, `n` or
+  `q`. It likes only after `y`, and lets you keep, rewrite or drop the comment.
+- In auto mode (`--auto`, or **Auto** in the web page): like every profile it
+  scans, without asking, until the cap. Use it only when you are fine with every
+  profile Hinge shows you getting a like and the comment the tool picks.
+- Stop for the day at `--cap` likes (default 5) in both modes.
 - Stop, without tapping, whenever the screen is not what it expects.
 
 ## What the tool will not do
 
-- Like or skip anyone without your answer for that profile.
-- Run in the background, on a schedule, or without a person at the keyboard.
+- Run in the background or on a schedule. A run lasts until the cap, `q`,
+  **Stop** or Ctrl+C.
 - Send messages in chats.
 - Tap Rose, Boost, HingeX, subscription or any purchase control. When the
   "Send a Rose instead?" sheet appears, it taps **Send Like anyway**.
@@ -36,8 +38,9 @@ Each sent like saves the frames of that person's profile and a short record unde
 
 - `people/` is in `.gitignore`. Never commit it, share it or upload it.
 - Delete folders you no longer need.
-- The capture tool sends a screenshot of the profile to the model provider you
-  choose (Anthropic or OpenAI). Their data policies apply to it.
+- Vision comments (`--model`) and the capture hotkey send a screenshot of the
+  profile to the model provider you choose (Anthropic, OpenAI, or Anthropic
+  through the `claude` CLI). Their data policies apply to it.
 - The SQLite database (`dating-assistant/data/assistant.db`) holds profile text
   and drafts. It is gitignored too.
 

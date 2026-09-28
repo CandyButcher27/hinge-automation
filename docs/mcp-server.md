@@ -19,11 +19,11 @@ This server never touches Hinge or any other dating service. Liking is done by
 Everything in the database got there because you pasted it in. Every draft is
 text for you to copy and send yourself. If a future feature would need direct
 interaction with a service, the right move is to check whether that service
-offers an authorized API — not to work around its absence.
+offers an authorized API, not to work around its absence.
 
 ## Requirements
 
-- Node.js **22.5 or newer** (uses the built-in `node:sqlite` module — no native build step)
+- Node.js **22.5 or newer** (uses the built-in `node:sqlite` module, no native build step)
 - Claude Desktop or Claude Code
 
 ## Install
@@ -59,7 +59,7 @@ built `dist/index.js`:
 ```
 
 See `dating-assistant/claude_desktop_config.example.json`. Restart Claude Desktop, then check the
-tool list — you should see `add_profile`, `analyze_profile` and the rest.
+tool list: you should see `add_profile`, `analyze_profile` and the rest.
 
 The transport is **stdio only**. Do not put this behind ngrok, a Cloudflare
 tunnel, a port forward, or any public HTTP endpoint.
@@ -80,21 +80,21 @@ claude mcp add dating-assistant -- node "$PWD\dist\index.js"
 | `list_profiles` | List stored profiles, newest first (`limit`) |
 | `set_preference` | Save/update one of your preferences by `category` |
 | `get_preferences` | Return all saved preferences |
-| `analyze_profile` | Return structured raw material about a profile — it does not decide |
+| `analyze_profile` | Return structured raw material about a profile; it does not decide |
 | `add_conversation` | Store conversation text you pasted in |
 | `get_conversation` | Return the conversation entries for a profile |
 | `draft_reply` | Return profile + preferences + conversation so Claude can write a draft |
 | `save_draft` | Save a draft locally |
 | `list_drafts` | List saved drafts, optionally per profile |
 
-Preferences are keyed by category — setting the same category twice updates it.
+Preferences are keyed by category: setting the same category twice updates it.
 Common categories: `communication style`, `interests`, `deal breakers`,
 `conversation preferences`, `relationship goals`.
 
 `analyze_profile` runs a plain text heuristic over the bio and notes. It returns
 possible interests, conversation topics, questions to consider, preference
 overlaps and explicit uncertainties. It produces no score and no recommendation
-— Claude and you do the reasoning.
+Claude and you do the reasoning.
 
 ## Example Claude prompts
 

@@ -5,7 +5,8 @@
 | Path | Language | Role |
 | --- | --- | --- |
 | `tools/hinge.py` | Python | Drives the emulator: scrolls, finds photos, types comments, sends likes |
-| `capture/hinge_capture.py` | Python | Hotkey: screenshot to vision model to opener on the clipboard |
+| `tools/ui.py`, `tools/ui.html` | Python, HTML | Local web front end: live screen, settings, y/n/q, comment editor, log |
+| `capture/hinge_capture.py` | Python | Window capture, `.env` loading, vision model calls, and the opener hotkey |
 | `dating-assistant/` | TypeScript | Local MCP server over the shared SQLite database |
 | `run-hinge.ps1` | PowerShell | Boots the emulator, sizes its window, installs Hinge, starts the hotkey |
 | `prompts.txt` | text | Comment pool for likes |
@@ -27,8 +28,16 @@
  └──────────────────────────────┘        └─────────────────────┘
 ```
 
-`tools/hinge.py` imports the window-capture functions from
-`capture/hinge_capture.py`. It does not use the database.
+`tools/hinge.py` imports window capture, `.env` loading and the vision model
+calls (`photo_comment`) from `capture/hinge_capture.py`. It does not use the
+database.
+
+`tools/ui.py` runs `run()` in a background thread. `run()` takes three hooks:
+`ask` (defaults to `input`), `say` (defaults to `print`) and `stopped`. The web
+server supplies its own: `ask` publishes the pending question and blocks until
+the page posts an answer, `say` appends to the log the page polls, and
+`stopped` reads the Stop flag. The page polls `/state` and `/frame.png`; the
+frame is the same host-side window grab the tool uses.
 
 ## Reading the screen
 
@@ -89,10 +98,13 @@ How taps, swipes and typing are randomised is in [anti-bot.md](anti-bot.md).
 
 ```
 rewind to top ─► scroll (random depth, or whole profile with --full)
-      ─► ask y/n/q
+      ─► ask y/n/q  (auto mode: 4-12 s pause, then y unless Stop was pressed)
             n ─► tap Skip ─► wait for a different profile screen
             q ─► exit
-            y ─► pick photo ─► scroll to it ─► tap heart
+            y ─► pick photo ─► scroll to it
+                 ─► comment: list line, vision model (--model) or none
+                 ─► ask mode: keep, replace or drop it
+                 ─► tap heart
                  ─► find Send ─► type comment ─► find Send again ─► tap Send
                  ─► handle Rose sheet if shown ─► wait for profile screen
                  ─► move frames to people/<timestamp>/, write profile.md, append likes.log

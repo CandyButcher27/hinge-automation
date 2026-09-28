@@ -1,66 +1,110 @@
 # Usage
 
 All commands run from the repository root. Hinge must be open on the
-**Discover** tab, with the emulator window visible.
+**Discover** tab, with the emulator window visible and not covered by another
+window.
 
-## `run`: like profiles with a person confirming each one
+## The web front end
 
 ```powershell
-uv run python tools\hinge.py run                # default mode
-uv run python tools\hinge.py run --full         # scan the whole profile first
-uv run python tools\hinge.py run --no-comment   # send likes without a message
-uv run python tools\hinge.py run --cap 3        # stop after 3 likes today
+uv run python tools\ui.py              # opens http://127.0.0.1:8765/ in your browser
+uv run python tools\ui.py --port 9000 --no-browser
 ```
 
-For each profile, `run`:
+The page shows the phone screen live and every setting below. Press **Start**,
+then answer with the **y / n / q** keys on the page or on your keyboard. In ask
+mode a comment box appears after `y`: send it as is, edit it, or choose
+**no comment**. **Stop** ends the run before the next like. The log streams
+under the controls, and **My comment list** edits `prompts.txt`.
 
-1. Scrolls back to the top of the profile.
-2. Scrolls down through it (see the modes below).
-3. Asks `[y/n/q]` and waits for you.
+The server listens on 127.0.0.1 only. Place the browser beside the emulator,
+not over it: the tool reads the screen from the emulator window's pixels.
 
-| Answer | Effect |
-| --- | --- |
-| `y` | Opens the like sheet on a photo, types a random line from `prompts.txt`, taps Send |
-| `n` | Taps Skip and waits for the next profile to load |
-| `q` | Exits without touching the app |
+## `run` in the terminal
 
-`run` stops when today's likes reach `--cap`. It counts them from
-`people/likes.log`, so the cap holds across separate runs on the same day.
+```powershell
+uv run python tools\hinge.py run                   # ask mode, comment from prompts.txt
+uv run python tools\hinge.py run --model           # comment written by a vision model
+uv run python tools\hinge.py run --no-comment      # no comment
+uv run python tools\hinge.py run --auto            # like without asking
+uv run python tools\hinge.py run --full --cap 3    # scan whole profiles, at most 3 likes today
+```
+
+For each profile, `run` scrolls back to the top, scrolls down through it, then
+either asks you or, in auto mode, likes it.
 
 ### Modes
 
-| Mode | What it scrolls | Which photo it likes |
+| Mode | Flag | What happens on each profile |
 | --- | --- | --- |
-| default | a random 0-8 flicks down, stopping at the first photo after that | a random photo fully on screen there |
-| `--full` | the whole profile, top to bottom | the first, second or last photo, at random |
+| Ask | (default) | Waits for `y` (like), `n` (skip) or `q` (quit). After `y` you can keep, rewrite or drop the comment |
+| Auto | `--auto` | Pauses 4-12 s as if reading, then likes. Never skips |
 
-Neither mode likes a video or a prompt card.
+Both modes stop when today's likes reach `--cap`. `run` counts them from
+`people/likes.log`, so the cap holds across runs on the same day.
 
-### Flags
+### Comment sources
+
+| Source | Flag | Where the comment comes from |
+| --- | --- | --- |
+| List | (default) | A random line from `prompts.txt` |
+| Vision model | `--model` | A model looks at the phone screen, with the chosen photo's like button circled, and writes one line about that photo |
+| None | `--no-comment` | The like is sent without a message |
+
+In ask mode, after `y` the terminal shows:
+
+```
+comment: 'love the lighting in this one' - enter to keep, type a new one, or - for none:
+```
+
+The vision model reply is reduced to printable ASCII before typing. If the model
+call fails, the run logs it and uses a line from `prompts.txt` instead.
+
+### Scroll depth
+
+| Setting | Flag | What it scrolls | Which photo it likes |
+| --- | --- | --- | --- |
+| Random depth | (default) | a random 0-8 flicks, stopping at the first photo after that | a random photo fully on screen |
+| Whole profile | `--full` | the whole profile | the first, second or last photo, at random |
+
+Videos and prompt cards are never liked.
+
+### All flags
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `--cap N` | `5` | maximum likes per calendar day |
-| `--full` | off | scan the whole profile before asking |
-| `--no-comment` | off | send the like with no message |
+| `--auto` | off | like without asking |
+| `--model` | off | vision model comments |
+| `--no-comment` | off | no comment |
+| `--provider` | `HINGE_PROVIDER`, else `auto` | `auto`, `claude-cli`, `anthropic` or `openai` |
+| `--full` | off | scan the whole profile |
 
-### Environment variables
+## Settings: `.env`
+
+Copy `.env.example` to `.env` and uncomment what you need. Variables already set
+in your shell win over the file.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `HINGE_AVD` | `Medium_Phone_API_35` | AVD name; used to find the emulator window |
+| `HINGE_PROVIDER` | `auto` | vision model provider |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | | keys for the API providers |
+| `HINGE_CLAUDE_CLI_MODEL` | `haiku` | model for `claude-cli` |
+| `HINGE_ANTHROPIC_MODEL` | `claude-opus-5` | model for `anthropic` |
+| `HINGE_OPENAI_MODEL` | `gpt-5.4-mini` | model for `openai` |
+| `HINGE_AVD` | `Medium_Phone_API_35` | AVD name, used to find the emulator window |
 | `HINGE_CONSOLE_PORT` | `5554` | emulator console port |
 
-## Comments: `prompts.txt`
+`auto` picks the Anthropic API if `ANTHROPIC_API_KEY` is set, then OpenAI if
+`OPENAI_API_KEY` is set, then the `claude` CLI. The CLI uses your Claude Code
+login and needs no key; each comment takes 15-25 s.
 
-`prompts.txt` at the repository root holds the comment pool, one per line.
-Blank lines are ignored. `run` picks one line at random for each like.
+## Comment list: `prompts.txt`
 
-Every line must be printable ASCII. `run` checks the whole file at start-up and
-stops if a line has emoji, accented letters or other characters the emulator
-console cannot type.
-
-Write lines that fit any photo. `run` does not look at what the photo shows.
+One comment per line; blank lines are ignored. Every line must be printable
+ASCII, because the emulator console cannot type emoji or accented letters. `run`
+checks the whole file at start-up. Write lines that fit any photo: the list
+source does not look at what the photo shows.
 
 ## Records: `people/`
 
@@ -80,12 +124,7 @@ people/
 2026-09-28 23:15:02	2026-09-28_231502	on-screen	you look so happy here, i love that
 ```
 
-`profile.md` starts with the heading `# (not read)`. Replace it with the
-person's name if you want to keep a readable record.
-
 ## Lower-level commands
-
-Used when driving the app by hand, or by Claude Code during a session.
 
 | Command | Effect |
 | --- | --- |
@@ -93,14 +132,6 @@ Used when driving the app by hand, or by Claude Code during a session.
 | `scroll <folder>` | Scroll the current profile to the end, saving numbered frames |
 | `like <heart_y> "<comment>"` | Tap the heart at device y, type the comment, stop before Send |
 | `tap <x> <y>` | Tap device coordinates (1080x2400), then save a frame |
-
-`like` does not tap Send. Tap it yourself, or with `tap`, after checking the
-screenshot.
-
-## Opener suggestions and the MCP server
-
-- [capture.md](capture.md): hotkey that writes a tailored opener for the profile on screen
-- [mcp-server.md](mcp-server.md): store profiles, preferences and conversations for Claude
 
 ## Tests
 

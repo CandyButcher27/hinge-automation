@@ -74,24 +74,30 @@ sign in to your own account. Leave Hinge on the **Discover** tab.
 The emulator writes its console token to `%USERPROFILE%\.emulator_console_auth_token`
 on first boot. `hinge.py` reads that file to connect.
 
-## 4. Add your comments
+## 4. Add your comments and settings
 
 Edit [`prompts.txt`](../prompts.txt) at the repository root. Each line is one
 comment that can be sent with a photo like. Use printable ASCII only; the
 emulator console cannot type emoji or accented letters.
 
+For comments written by a vision model, copy `.env.example` to `.env`. The
+default provider, `claude-cli`, uses your Claude Code login and needs no key.
+To use an API instead, set `HINGE_PROVIDER` and the matching key there.
+
 ## 5. Run
 
 ```powershell
-uv run python tools\hinge.py run --cap 1
+uv run python tools\ui.py                  # web front end
+uv run python tools\hinge.py run --cap 1   # or the terminal
 ```
 
-Keep the emulator window visible and do not cover it with another window.
-The tool reads the screen from that window. Answer `y`, `n` or `q` for each
-profile. See [usage.md](usage.md) for every mode and flag.
+Keep the emulator window visible and do not cover it with another window,
+including the browser. The tool reads the screen from that window. In the
+default ask mode you answer `y`, `n` or `q` for each profile. See
+[usage.md](usage.md) for every mode and flag.
 
 ## Next
 
-- [usage.md](usage.md): commands, flags and the records it writes
+- [usage.md](usage.md): modes, comment sources, the web front end, records
 - [safety.md](safety.md): what the tool will and will not do
 - [anti-bot.md](anti-bot.md): how input is made to behave like a person

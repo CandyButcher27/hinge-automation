@@ -48,6 +48,16 @@ emulator, or run the tool from a terminal placed beside it.
 | `set ANTHROPIC_API_KEY or OPENAI_API_KEY, or install the claude CLI` | Configure a provider, see [capture.md](capture.md) |
 | `could not open the clipboard` | Another app holds the clipboard; try again |
 
+## Vision comments and the web front end
+
+| Symptom | Fix |
+| --- | --- |
+| `vision model failed (...); using a line from prompts.txt` | The model call failed and the like went out with a list line. Check the provider and key in `.env`, or that `claude` works in a terminal |
+| `set ANTHROPIC_API_KEY or OPENAI_API_KEY, or install the claude CLI` on start | `--model` found no provider. Set one in `.env` |
+| Page shows "Emulator window not found" | Start the emulator; check `HINGE_AVD` matches its name |
+| `OSError: [WinError 10048]` when starting `ui.py` | Port 8765 is in use. Pass `--port 9000` |
+| Scan finds no photos while the page is open | The browser covers the emulator. Put it beside the emulator window |
+
 ## After a Hinge update
 
 Hinge changes its layout from time to time. The detectors in `tools/hinge.py`
