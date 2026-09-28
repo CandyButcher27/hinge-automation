@@ -109,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
             error = prompts_error(body.get("text", ""))
             if error:
                 return self.reply({"error": error}, code=400)
-            hinge.COMMENTS.write_text(body["text"].strip() + "\n", encoding="utf-8")
+            hinge.COMMENTS.write_text(body["text"].strip() + "\n", encoding="utf-8", newline="\n")
         else:
             return self.reply({"error": "not found"}, code=404)
         self.reply({"ok": True})
