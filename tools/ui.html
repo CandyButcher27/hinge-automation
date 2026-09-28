@@ -29,6 +29,8 @@
     min-height: 100%;
     display: grid;
     grid-template-columns: auto minmax(340px, 540px);
+    align-items: start;
+    align-content: start;
     gap: 40px;
     justify-content: center;
     padding: 24px 32px;
@@ -144,8 +146,9 @@
   .saved { color: var(--muted); font-size: 13px; margin-left: 10px; }
 
   @media (max-width: 900px) {
-    main { grid-template-columns: 1fr; padding: 16px; gap: 24px; }
-    .phone { position: static; height: auto; width: min(100%, 360px); min-height: 0; justify-self: center; }
+    main { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 24px; }
+    .phone { position: static; height: auto; width: min(100%, 340px); min-height: 0; aspect-ratio: auto; justify-self: center; }
+    .phone img, .phone .off { height: auto; aspect-ratio: 415 / 923; }
     .row { grid-template-columns: 1fr; gap: 6px; }
     .note { margin-left: 0; }
   }
