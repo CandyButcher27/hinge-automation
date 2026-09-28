@@ -1,8 +1,8 @@
 # Usage
 
 All commands run from the repository root. Hinge must be open on the
-**Discover** tab, with the emulator window visible and not covered by another
-window.
+**Discover** tab. The emulator window can sit behind other windows, but must
+not be minimized.
 
 ## The web front end
 
@@ -17,8 +17,7 @@ mode a comment box appears after `y`: send it as is, edit it, or choose
 **no comment**. **Stop** ends the run before the next like. The log streams
 under the controls, and **My comment list** edits `prompts.txt`.
 
-The server listens on 127.0.0.1 only. Place the browser beside the emulator,
-not over it: the tool reads the screen from the emulator window's pixels.
+The server listens on 127.0.0.1 only.
 
 ## `run` in the terminal
 

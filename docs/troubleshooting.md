@@ -22,11 +22,10 @@ again.
 | `comment '...' is not printable ASCII` | A line in `prompts.txt` has emoji or accents | Edit that line |
 | `daily cap of N likes reached` | `--cap` reached for today | Wait until tomorrow, or raise `--cap` |
 
-## The scan sees 0 photos although a profile is on screen
+## The screen preview is blank or the run cannot find the window
 
-Another window (often a new console window) overlaps the emulator. The tool
-grabs screen pixels, so it captures whatever is on top. Move the window off the
-emulator, or run the tool from a terminal placed beside it.
+The emulator window is minimized, or its title does not match `HINGE_AVD`.
+Restore the window; other windows may cover it, but it must not be minimized.
 
 ## Emulator
 
@@ -56,7 +55,6 @@ emulator, or run the tool from a terminal placed beside it.
 | `set ANTHROPIC_API_KEY or OPENAI_API_KEY, or install the claude CLI` on start | `--model` found no provider. Set one in `.env` |
 | Page shows "Emulator window not found" | Start the emulator; check `HINGE_AVD` matches its name |
 | `OSError: [WinError 10048]` when starting `ui.py` | Port 8765 is in use. Pass `--port 9000` |
-| Scan finds no photos while the page is open | The browser covers the emulator. Put it beside the emulator window |
 
 ## After a Hinge update
 

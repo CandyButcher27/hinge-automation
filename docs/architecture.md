@@ -45,8 +45,10 @@ Hinge sets `FLAG_SECURE`, so `adb exec-out screencap` returns black frames and
 the UI exposes no text to `uiautomator`. The only source is the pixels of the
 emulator window on the Windows host.
 
-`screen()` finds the window titled `Android Emulator - <AVD>:<port>`, sets it
-always-on-top, and grabs its client area with `mss`. `frame()` scales every grab
+`screen()` finds the window titled `Android Emulator - <AVD>:<port>` and asks
+Windows to render its client area into memory (`PrintWindow` with
+`PW_RENDERFULLCONTENT`, in `window_png()`). That works while other windows cover
+the emulator; it fails only when the emulator is minimized. `frame()` scales every grab
 to 415x923 so all pixel checks work at one scale, whatever the window size.
 Device coordinates are frame coordinates times about 2.6 (`SX`, `SY`).
 

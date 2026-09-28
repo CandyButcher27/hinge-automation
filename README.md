@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/header.gif" alt="hinge-automation: a human-in-the-loop Hinge helper for the Android emulator" width="100%">
+  <img src="docs/assets/header.gif" alt="hinge-automation" width="100%">
 </p>
 
 # hinge-automation
@@ -79,7 +79,7 @@ copy .env.example .env     # optional: pick the vision model provider
 uv run python tools\ui.py  # opens the web front end
 ```
 
-Keep the emulator window visible and uncovered while the tool runs.
+Keep the emulator window open (it may sit behind other windows, but not minimized).
 Full steps are in [docs/getting-started.md](docs/getting-started.md).
 
 ## Usage

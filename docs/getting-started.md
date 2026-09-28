@@ -91,8 +91,8 @@ uv run python tools\ui.py                  # web front end
 uv run python tools\hinge.py run --cap 1   # or the terminal
 ```
 
-Keep the emulator window visible and do not cover it with another window,
-including the browser. The tool reads the screen from that window. In the
+Keep the emulator window open. Other windows may cover it, but do not minimize
+it: the tool reads the screen from that window. In the
 default ask mode you answer `y`, `n` or `q` for each profile. See
 [usage.md](usage.md) for every mode and flag.
 
