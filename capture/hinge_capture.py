@@ -15,6 +15,17 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+def load_env(path: Path) -> None:
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        key, sep, value = line.partition("=")
+        if sep and key.strip() and not key.strip().startswith("#"):
+            os.environ.setdefault(key.strip(), value.strip().strip('"'))
+
+
+load_env(Path(__file__).resolve().parent.parent / ".env")
+
 MODEL = os.environ.get("HINGE_ANTHROPIC_MODEL", "claude-opus-5")
 OPENAI_MODEL = os.environ.get("HINGE_OPENAI_MODEL", "gpt-5.4-mini")
 CLAUDE_CLI_MODEL = os.environ.get("HINGE_CLAUDE_CLI_MODEL", "haiku")

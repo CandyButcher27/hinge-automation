@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 import pytest
@@ -151,3 +152,17 @@ def test_resolve_provider(monkeypatch):
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-x")
     assert hc.resolve_provider("auto") == "anthropic"
+
+
+
+def test_load_env_fills_only_unset_variables(tmp_path, monkeypatch):
+    env = tmp_path / ".env"
+    env.write_text('# HINGE_AVD=commented\nHINGE_OPENAI_MODEL="from-file"\nHINGE_PROVIDER=openai\n', encoding="utf-8")
+    monkeypatch.setenv("HINGE_PROVIDER", "shell")
+    monkeypatch.delenv("HINGE_OPENAI_MODEL", raising=False)
+    monkeypatch.delenv("HINGE_AVD", raising=False)
+    hc.load_env(env)
+    assert os.environ["HINGE_OPENAI_MODEL"] == "from-file"
+    assert os.environ["HINGE_PROVIDER"] == "shell"
+    assert "HINGE_AVD" not in os.environ
+    hc.load_env(tmp_path / "missing.env")
