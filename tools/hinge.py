@@ -392,6 +392,18 @@ def liked_today():
     return sum(line.startswith(today) for line in LOG.read_text().splitlines()) if LOG.exists() else 0
 
 
+def edit_comment(comment, ask, say):
+    while True:
+        typed = ask(f"comment: {comment!r} - enter to keep, type a new one, or - for none: ").strip()
+        if not typed:
+            return comment
+        if typed == "-":
+            return None
+        if typed.isascii() and typed.isprintable():
+            return typed
+        say("printable ASCII only, try again")
+
+
 def run(cap, no_comment, full, auto=False, ask=input, say=print, stopped=lambda: False):
     comments = [None] if no_comment else [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
     for c in comments:
@@ -435,6 +447,8 @@ def run(cap, no_comment, full, auto=False, ask=input, say=print, stopped=lambda:
             hy = goto(photos[{"first": 0, "second": 1, "last": -1}[which]], top, views[-1])
         else:
             which, hy = "on-screen", random.choice(here)
+        if comment and not auto:
+            comment = edit_comment(comment, ask, say)
         say(f"liking the {which} photo: {comment or 'no comment'!r}")
         rose = send_like(open_sheet(hy, comment))
         ts = time.strftime("%Y-%m-%d %H:%M:%S")

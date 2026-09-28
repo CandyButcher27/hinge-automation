@@ -123,3 +123,9 @@ def test_auto_likes_without_asking_until_the_cap(app):
 def test_run_stops_when_asked_to(app):
     hinge.run(5, False, False, auto=True, say=lambda m: None, stopped=lambda: len(app) >= 1)
     assert len(app) == 1
+
+
+def test_restrictive_mode_lets_the_person_replace_the_comment(app):
+    answers = iter(["y", "nice sunset, where is this?", "y", "café?", "-", "q"])
+    hinge.run(5, False, False, ask=lambda q: next(answers), say=lambda m: None)
+    assert app == ["nice sunset, where is this?", None]
