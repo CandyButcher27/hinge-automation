@@ -152,3 +152,10 @@ def test_model_comment_is_used_and_falls_back_to_the_list(app, monkeypatch):
     lines = [line.strip() for line in hinge.COMMENTS.read_text().splitlines() if line.strip()]
     assert app[0] == "love the lighting in this one"
     assert app[1] in lines
+
+
+def test_auto_mode_does_not_like_after_stop_during_the_scan(app, monkeypatch):
+    flag = []
+    monkeypatch.setattr(hinge, "wander", lambda folder: folder.mkdir(exist_ok=True) or flag.append(1) or [400])
+    hinge.run(5, "list", False, auto=True, say=lambda m: None, stopped=lambda: bool(flag))
+    assert app == []

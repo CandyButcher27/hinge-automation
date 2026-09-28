@@ -455,7 +455,7 @@ def run(cap, source, full, auto=False, provider="auto", ask=input, say=print, st
         if auto:
             say(f"{question} auto: yes")
             pause(4, 12)
-            ans = "y"
+            ans = "q" if stopped() else "y"
         while ans not in ("y", "n", "q"):
             ans = ask(f"{question} [y/n/q] ").strip().lower()
         if ans == "q":
