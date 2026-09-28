@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dating-assistant": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\sriva\\Desktop\\Me\\hine automation\\dating-assistant\\dist\\index.js"
+      ]
+    }
+  }
+}
