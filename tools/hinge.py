@@ -288,12 +288,13 @@ def open_sheet(hy, comment):
     py = send_button(frame(screen()))
     if py is None:
         raise Stop("like sheet not found after tapping the heart")
-    tap(207 * SX, (py - 68) * SY)
-    type_text(comment)
-    pause()
-    py = send_button(frame(screen()))
-    if py is None:
-        raise Stop("Send button not found after typing")
+    if comment:
+        tap(207 * SX, (py - 68) * SY)
+        type_text(comment)
+        pause()
+        py = send_button(frame(screen()))
+        if py is None:
+            raise Stop("Send button not found after typing")
     return py
 
 
@@ -318,10 +319,10 @@ def liked_today():
     return sum(line.startswith(today) for line in LOG.read_text().splitlines()) if LOG.exists() else 0
 
 
-def run(cap):
-    comments = [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
+def run(cap, no_comment):
+    comments = [None] if no_comment else [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
     for c in comments:
-        if not (c.isascii() and c.isprintable()):
+        if c and not (c.isascii() and c.isprintable()):
             raise Stop(f"comment {c!r} is not printable ASCII")
     while True:
         if liked_today() >= cap:
@@ -348,18 +349,19 @@ def run(cap):
             continue
         which = random.choice(["first", "second", "last"] if len(photos) > 2 else ["first", "last"])
         comment = random.choice(comments)
-        print(f"liking the {which} photo: {comment!r}")
+        print(f"liking the {which} photo: {comment or 'no comment'!r}")
         hy = goto(photos[{"first": 0, "second": 1, "last": -1}[which]], top, views[-1])
         rose = send_like(open_sheet(hy, comment))
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        said = f'comment: "{comment}"' if comment else "no comment"
         folder = PEOPLE / time.strftime("%Y-%m-%d_%H%M%S")
         shutil.move(tmp, folder)
         (folder / "profile.md").write_text(
             f"# (not read)\n\nSeen: {ts[:10]} (Discover, tools/hinge.py run)\n\n## Actions\n"
-            f"- {ts[:16]}: Priority Like sent on the {which} photo, comment: \"{comment}\". "
+            f"- {ts[:16]}: Priority Like sent on the {which} photo, {said}. "
             f"{'The Rose sheet appeared; Send Like anyway was tapped.' if rose else 'No Rose prompt appeared.'}\n", encoding="utf-8")
         with LOG.open("a", encoding="utf-8") as f:
-            f.write(f"{ts}\t{folder.name}\t{which}\t{comment}\n")
+            f.write(f"{ts}\t{folder.name}\t{which}\t{comment or ''}\n")
         print(f"sent ({liked_today()}/{cap} today), saved to {folder}")
         pause(3, 8)
 
@@ -378,6 +380,7 @@ def main():
     s.add_argument("y", type=int)
     s = sub.add_parser("run")
     s.add_argument("--cap", type=int, default=5)
+    s.add_argument("--no-comment", action="store_true")
     a = p.parse_args()
 
     try:
@@ -390,7 +393,7 @@ def main():
             open_sheet(a.heart_y / SY, a.comment)
             shot()
         elif a.cmd == "run":
-            run(a.cap)
+            run(a.cap, a.no_comment)
         else:
             tap(a.x, a.y)
             shot()
