@@ -91,7 +91,7 @@ def drag(x1, y1, x2, y2, dur):
     n = max(6, dur // 16)
     bow = random.uniform(-30, 30)
     p = random.randint(150, 500)
-    pts = []
+    pts = [(x1 + random.uniform(-1, 1), y1 + random.uniform(-1, 1), p * 0.75 + random.uniform(-15, 15)) for _ in range(random.randint(0, 8))]
     for i in range(n + 1):
         t = i / n
         s = t**3 * (10 - 15 * t + 6 * t * t)
@@ -100,19 +100,21 @@ def drag(x1, y1, x2, y2, dur):
     touch(pts, dur / n / 1000)
 
 
-def swipe(x1, y1, x2, y2):
-    j = lambda v: v + random.triangular(-40, 40)
-    drag(j(x1), j(y1), j(x2), j(y2), random.randint(350, 900))
-    pause(1.2, 2.6)
+def thumb(down=False):
+    x = random.randint(90, 260) if random.random() < 0.5 else random.randint(820, 1000)
+    return x, random.randint(500, 900) if down else random.randint(1650, 1880)
+
+
+def stroke(dist):
+    x, y = thumb(dist < 0)
+    drag(x, y, x + random.randint(-60, 60), y - dist, int(abs(dist) / random.uniform(0.6, 1.8)))
 
 
 def flick(back_ok):
-    x = random.randint(430, 700)
-    y = random.randint(1550, 1900)
     dist = random.randint(450, 1000)
     if back_ok and random.random() < 0.1:
         dist = -random.randint(150, 350)
-    drag(x, y, x + random.randint(-60, 60), y - dist, int(abs(dist) / random.uniform(0.9, 1.8)))
+    stroke(dist)
     pause(2.5, 5.0) if random.random() < 0.25 else pause(0.9, 2.2)
     return dist > 0
 
@@ -216,10 +218,7 @@ def goto(cy, top, view):
             near = [y for y in visible(view) if abs(y - want) < 40]
             if near:
                 return near[0]
-        delta = max(-300, min(300, want - 450)) * SY
-        y0 = random.randint(1500, 1900) if delta > 0 else random.randint(500, 900)
-        x = random.randint(430, 700)
-        drag(x, y0, x + random.randint(-40, 40), y0 - delta, int(abs(delta) / random.uniform(0.9, 1.6)))
+        stroke(max(-300, min(300, want - 450)) * SY)
         pause(0.9, 1.8)
         new = look()[1:]
         top += offset(view[1], new[1])
@@ -293,9 +292,7 @@ def wander(folder):
             break
         forward = flick(i > 1)
     for _ in range(10):
-        x = random.randint(430, 700)
-        y = random.randint(600, 900)
-        drag(x, y, x + random.randint(-60, 60), y + random.randint(400, 600), random.randint(300, 600))
+        stroke(-random.randint(400, 600))
         pause(0.9, 1.8)
         ys = visible(look()[1:])
         if ys:
@@ -306,9 +303,7 @@ def wander(folder):
 def rewind():
     prev = look()[2]
     for _ in range(15):
-        x = random.randint(430, 700)
-        y = random.randint(600, 900)
-        drag(x, y, x + random.randint(-60, 60), y + random.randint(600, 750), random.randint(300, 600))
+        stroke(-random.randint(600, 750))
         pause(0.6, 1.4)
         cur = look()[2]
         if abs(offset(prev, cur)) <= 2:
@@ -318,7 +313,8 @@ def rewind():
 
 def open_sheet(hy, comment):
     tap(360 * SX, hy * SY)
-    swipe(540, 1500, 540, 900)
+    stroke(random.randint(500, 700))
+    pause(1.2, 2.6)
     py = send_button(frame(screen()))
     if py is None:
         raise Stop("like sheet not found after tapping the heart")
