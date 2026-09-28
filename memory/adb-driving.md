@@ -29,8 +29,15 @@ Taps and drags no longer use `adb shell input`. `input` marks events as a virtua
   The screen can lag behind the typing by about 1-2s. Verified 2026-09-28 in the Settings search box: `Hi there, it's 5 o'clock! you look really cute?` came out exact.
 - `hinge.py` no longer calls adb at all. Everything goes through the console or the host window grab.
 
-### `hinge.py run --cap N` (written 2026-09-28, NEVER RUN)
-Loop: scroll the profile, then prompt y/n/q in the terminal. On y it picks the first, second or last photo at random and a random line from
+### `hinge.py run --cap N [--no-comment] [--full]`
+The user ran it once on 2026-09-28 (full mode, before the flags existed) and it liked K's second photo end to end (`people/likes.log`).
+- **Default (random depth)**: `wander()` rewinds, then scrolls a random 0-8 flicks (or to the end). It prompts there and likes a random photo from
+  `visible()` (photo hearts, not video, y 150-780). If none is visible it keeps going, then strokes back up. Live-checked 2026-09-28 (depth 3 and depth 0). No like has been sent in this mode yet.
+- `--no-comment` skips the comment-box tap and typing. It has not been exercised live yet.
+- **Swipes** (`stroke(dist)`): each starts at a thumb rest spot, chosen at random per stroke. Left is x 90-260, above the skip X, which spans about y 1963-2123;
+  right is x 820-1000, above the heart column. Upward strokes start at y 1650-1880 and downward ones at 500-900. Each stroke has a 0-130ms hold and speed 0.6-1.8 px/ms.
+  getevent on 2026-09-28 showed all 16 starts in those zones.
+- `--full` (the original mode): scroll the whole profile, prompt y/n/q, and on y pick the first, second or last photo at random and a random line from
 `tools/comments.txt`, scrolls to that photo's heart and taps it. It swipes, finds the Send pill, taps the comment box (pill y - 68), types,
 re-finds the pill and taps Send. If the Rose sheet appears it taps "Send Like anyway" once. It waits for a normal profile screen, then saves frames to
 `people/<YYYY-MM-DD_HHMMSS>/` with a minimal profile.md and appends to `people/likes.log`, which the daily cap counts. n taps skip (X) and discards the frames.
