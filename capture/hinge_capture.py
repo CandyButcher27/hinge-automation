@@ -237,6 +237,21 @@ def shrink(png: bytes, max_edge: int = 1568) -> bytes:
 
 PROMPT = "Read this profile and write my opening comment."
 
+PHOTO_SYSTEM = """You see a screenshot of a dating profile. One photo has its like button circled in red. Write the short comment the user will send along with a like on that photo.
+
+- Comment on that photo only: something specific you can see in it (the place, what they are doing, the mood, an object).
+- Warm and light. Never comment on their body.
+- One sentence, under 90 characters. Lowercase is fine.
+- Plain ASCII only: no emoji, no curly quotes, no long dashes.
+"""
+PHOTO_PROMPT = "Write the comment for the circled photo."
+PHOTO_SCHEMA = {
+    "type": "object",
+    "properties": {"comment": {"type": "string"}},
+    "required": ["comment"],
+    "additionalProperties": False,
+}
+
 
 def resolve_provider(choice: str) -> str:
     if choice != "auto":
@@ -266,12 +281,17 @@ def unfence(text: str) -> str:
     return text.strip()
 
 
-def analyze_claude_cli(png: bytes, system: str) -> dict:
+def photo_comment(png: bytes, provider: str) -> str:
+    fn = {"anthropic": analyze_anthropic, "openai": analyze_openai, "claude-cli": analyze_claude_cli}[provider]
+    return fn(png, PHOTO_SYSTEM, PHOTO_PROMPT, PHOTO_SCHEMA)["comment"]
+
+
+def analyze_claude_cli(png: bytes, system: str, prompt_text: str = PROMPT, schema: dict = RESPONSE_SCHEMA) -> dict:
     shot = Path(tempfile.gettempdir()) / f"hinge_shot_{os.getpid()}.png"
     shot.write_bytes(png)
     prompt = (
-        f"{system}\n\nRead the image at {shot} and reply with ONLY a JSON object matching this "
-        f"schema. No prose, no code fences.\n\n{json.dumps(RESPONSE_SCHEMA)}"
+        f"{system}\n\n{prompt_text} Read the image at {shot} and reply with ONLY a JSON object matching this "
+        f"schema. No prose, no code fences.\n\n{json.dumps(schema)}"
     )
     try:
         run = subprocess.run(
@@ -296,7 +316,7 @@ def analyze_claude_cli(png: bytes, system: str) -> dict:
     return json.loads(unfence(payload["result"]))
 
 
-def analyze_anthropic(png: bytes, system: str) -> dict:
+def analyze_anthropic(png: bytes, system: str, prompt_text: str = PROMPT, schema: dict = RESPONSE_SCHEMA) -> dict:
     import anthropic
 
     client = anthropic.Anthropic()
@@ -317,11 +337,11 @@ def analyze_anthropic(png: bytes, system: str) -> dict:
                             "data": base64.standard_b64encode(png).decode(),
                         },
                     },
-                    {"type": "text", "text": PROMPT},
+                    {"type": "text", "text": prompt_text},
                 ],
             }
         ],
-        output_config={"format": {"type": "json_schema", "schema": RESPONSE_SCHEMA}},
+        output_config={"format": {"type": "json_schema", "schema": schema}},
     )
     if response.stop_reason == "refusal":
         raise RuntimeError(f"model declined: {response.stop_details}")
@@ -329,7 +349,7 @@ def analyze_anthropic(png: bytes, system: str) -> dict:
     return json.loads(text)
 
 
-def analyze_openai(png: bytes, system: str) -> dict:
+def analyze_openai(png: bytes, system: str, prompt_text: str = PROMPT, schema: dict = RESPONSE_SCHEMA) -> dict:
     import openai
 
     client = openai.OpenAI()
@@ -347,7 +367,7 @@ def analyze_openai(png: bytes, system: str) -> dict:
                         "image_url": "data:image/png;base64,"
                         + base64.standard_b64encode(png).decode(),
                     },
-                    {"type": "input_text", "text": PROMPT},
+                    {"type": "input_text", "text": prompt_text},
                 ],
             }
         ],
@@ -356,7 +376,7 @@ def analyze_openai(png: bytes, system: str) -> dict:
                 "type": "json_schema",
                 "name": "profile_comment",
                 "strict": True,
-                "schema": RESPONSE_SCHEMA,
+                "schema": schema,
             }
         },
     )

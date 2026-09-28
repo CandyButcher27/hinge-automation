@@ -16,7 +16,7 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "capture"))
-from hinge_capture import grab, window_region
+from hinge_capture import grab, photo_comment, resolve_provider, window_region
 
 AVD = os.environ.get("HINGE_AVD", "Medium_Phone_API_35")
 PORT = int(os.environ.get("HINGE_CONSOLE_PORT", "5554"))
@@ -404,11 +404,36 @@ def edit_comment(comment, ask, say):
         say("printable ASCII only, try again")
 
 
-def run(cap, no_comment, full, auto=False, ask=input, say=print, stopped=lambda: False):
-    comments = [None] if no_comment else [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
+def ascii_text(text):
+    for a, b in (("\u2018", "'"), ("\u2019", "'"), ("\u201c", '"'), ("\u201d", '"'), ("\u2013", "-"), ("\u2014", "-"), ("\u2026", "...")):
+        text = text.replace(a, b)
+    text = " ".join(text.encode("ascii", "ignore").decode().split())
+    return text if text.isprintable() else ""
+
+
+def model_comment(hy, provider, say):
+    im = frame(screen())
+    ImageDraw.Draw(im).ellipse((330, hy - 30, 390, hy + 30), outline=(255, 0, 0), width=4)
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    try:
+        return ascii_text(photo_comment(buf.getvalue(), provider)) or None
+    except Exception as e:
+        say(f"vision model failed ({e}); using a line from prompts.txt")
+        return None
+
+
+def run(cap, source, full, auto=False, provider="auto", ask=input, say=print, stopped=lambda: False):
+    comments = [line.strip() for line in COMMENTS.read_text().splitlines() if line.strip()]
     for c in comments:
-        if c and not (c.isascii() and c.isprintable()):
+        if not (c.isascii() and c.isprintable()):
             raise Stop(f"comment {c!r} is not printable ASCII")
+    if source == "model":
+        try:
+            provider = resolve_provider(provider)
+        except RuntimeError as e:
+            raise Stop(str(e))
+        say(f"comments from the vision model ({provider})")
     while not stopped():
         if liked_today() >= cap:
             say(f"daily cap of {cap} likes reached")
@@ -441,12 +466,14 @@ def run(cap, no_comment, full, auto=False, ask=input, say=print, stopped=lambda:
             skip()
             pause(2, 6)
             continue
-        comment = random.choice(comments)
+        comment = None if source == "none" else random.choice(comments)
         if full:
             which = random.choice(["first", "second", "last"] if len(photos) > 2 else ["first", "last"])
             hy = goto(photos[{"first": 0, "second": 1, "last": -1}[which]], top, views[-1])
         else:
             which, hy = "on-screen", random.choice(here)
+        if source == "model":
+            comment = model_comment(hy, provider, say) or comment
         if comment and not auto:
             comment = edit_comment(comment, ask, say)
         say(f"liking the {which} photo: {comment or 'no comment'!r}")
@@ -479,7 +506,10 @@ def main():
     s.add_argument("y", type=int)
     s = sub.add_parser("run")
     s.add_argument("--cap", type=int, default=5)
-    s.add_argument("--no-comment", action="store_true")
+    words = s.add_mutually_exclusive_group()
+    words.add_argument("--no-comment", action="store_true")
+    words.add_argument("--model", action="store_true")
+    s.add_argument("--provider", choices=["auto", "anthropic", "openai", "claude-cli"], default=os.environ.get("HINGE_PROVIDER", "auto"))
     s.add_argument("--full", action="store_true")
     s.add_argument("--auto", action="store_true")
     a = p.parse_args()
@@ -494,7 +524,8 @@ def main():
             open_sheet(a.heart_y / SY, a.comment)
             shot()
         elif a.cmd == "run":
-            run(a.cap, a.no_comment, a.full, a.auto, say=functools.partial(print, flush=True))
+            source = "none" if a.no_comment else "model" if a.model else "list"
+            run(a.cap, source, a.full, a.auto, a.provider, say=functools.partial(print, flush=True))
         else:
             tap(a.x, a.y)
             shot()

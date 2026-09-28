@@ -115,17 +115,40 @@ def app(tmp_path, monkeypatch):
 def test_auto_likes_without_asking_until_the_cap(app):
     def ask(q):
         raise AssertionError("auto mode asked")
-    hinge.run(2, False, False, auto=True, ask=ask, say=lambda m: None)
+    hinge.run(2, "list", False, auto=True, ask=ask, say=lambda m: None)
     assert len(app) == 2
     assert hinge.liked_today() == 2
 
 
 def test_run_stops_when_asked_to(app):
-    hinge.run(5, False, False, auto=True, say=lambda m: None, stopped=lambda: len(app) >= 1)
+    hinge.run(5, "list", False, auto=True, say=lambda m: None, stopped=lambda: len(app) >= 1)
     assert len(app) == 1
 
 
 def test_restrictive_mode_lets_the_person_replace_the_comment(app):
     answers = iter(["y", "nice sunset, where is this?", "y", "café?", "-", "q"])
-    hinge.run(5, False, False, ask=lambda q: next(answers), say=lambda m: None)
+    hinge.run(5, "list", False, ask=lambda q: next(answers), say=lambda m: None)
     assert app == ["nice sunset, where is this?", None]
+
+
+def test_ascii_text_keeps_what_the_console_can_type():
+    assert hinge.ascii_text("it’s “lovely” — wow… \U0001F60D ok") == 'it\'s "lovely" - wow... ok'
+
+
+def test_model_comment_is_used_and_falls_back_to_the_list(app, monkeypatch):
+    monkeypatch.setattr(hinge, "screen", lambda: None)
+    monkeypatch.setattr(hinge, "frame", lambda im: Image.new("RGB", (hinge.FW, hinge.FH)))
+    monkeypatch.setattr(hinge, "resolve_provider", lambda p: "claude-cli")
+    replies = iter(["love the lighting in this one \U0001F31E", RuntimeError("offline")])
+
+    def photo_comment(png, provider):
+        r = next(replies)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    monkeypatch.setattr(hinge, "photo_comment", photo_comment)
+    hinge.run(2, "model", False, auto=True, say=lambda m: None)
+    lines = [line.strip() for line in hinge.COMMENTS.read_text().splitlines() if line.strip()]
+    assert app[0] == "love the lighting in this one"
+    assert app[1] in lines
