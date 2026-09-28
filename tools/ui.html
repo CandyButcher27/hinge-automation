@@ -91,6 +91,11 @@
   .note { margin: -4px 0 0 108px; color: var(--rose); font-size: 13px; }
   .note:empty { display: none; }
 
+  .bar { display: flex; align-items: center; gap: 16px; }
+  .status { color: var(--muted); }
+  .summary { margin: 0; color: var(--muted); display: none; }
+  .running .settings { display: none; }
+  .running .summary { display: block; }
   .go {
     align-self: flex-start;
     border: 0; border-radius: 10px; cursor: pointer;
@@ -165,7 +170,7 @@
   <section class="panel">
     <header>
       <h1>hinge-automation</h1>
-      <div class="count"><span id="today">0</span><small>of <span id="cap-shown">5</span> today</small></div>
+      <div class="count"><span id="today">0</span><small>liked today</small></div>
     </header>
 
     <div class="settings" id="settings">
@@ -186,9 +191,12 @@
         </div>
       </div>
       <div class="row"><span>Daily cap</span><input type="number" id="cap" min="1" max="100" value="5"></div>
+      <p class="note" id="cap-note"></p>
     </div>
 
-    <button class="go" id="go">Start</button>
+    <p class="summary" id="summary"></p>
+
+    <div class="bar"><button class="go" id="go">Start</button><span class="status" id="status"></span></div>
 
     <div class="ask" id="decide">
       <p id="question"></p>
@@ -224,7 +232,7 @@ const $ = (id) => document.getElementById(id);
 const settings = { auto: "false", source: "list", full: "false" };
 try { Object.assign(settings, JSON.parse(localStorage.getItem("hinge-settings") || "{}")); } catch (e) {}
 try { $("cap").value = localStorage.getItem("hinge-cap") || 5; } catch (e) {}
-let running = false, pending = null, suggestion = "";
+let running = false, pending = null, suggestion = "", today = 0;
 
 function paintSettings() {
   document.querySelectorAll(".seg").forEach((seg) => {
@@ -235,6 +243,8 @@ function paintSettings() {
   });
   $("cap").disabled = running;
   $("auto-note").textContent = settings.auto === "true" ? "Auto likes every profile it scans until the daily cap, without asking." : "";
+  const cap = Number($("cap").value) || 0;
+  $("cap-note").textContent = !running && today >= cap ? `Already ${today} today. Raise the cap above ${today} to like more.` : "";
 }
 
 document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (e) => {
@@ -294,19 +304,24 @@ function render() {
   }
   shown = key;
   $("go").textContent = running ? "Stop" : "Start";
+  document.querySelector(".panel").classList.toggle("running", running);
+  const label = (key) => document.querySelector(`.seg[data-key="${key}"] [aria-pressed="true"]`)?.textContent || "";
+  $("summary").textContent = [label("auto"), label("source"), label("full"), `cap ${$("cap").value}`].join("  /  ");
+  $("status").textContent = running && !pending ? lastLine.replace(/^\S+\s+/, "") : "";
   $("go").classList.toggle("stop", running);
   paintSettings();
 }
 
-let lastLog = "";
+let lastLog = "", lastLine = "";
 async function poll() {
   try {
     const s = await (await fetch("/state")).json();
     running = s.running;
     pending = s.pending;
     $("today").textContent = s.today;
-    $("cap-shown").textContent = running ? s.cap : $("cap").value;
+    today = s.today;
     const log = s.log.join("\n");
+    lastLine = s.log[s.log.length - 1] || "";
     if (log !== lastLog) {
       lastLog = log;
       $("log").replaceChildren(...s.log.slice(-60).map((line) => Object.assign(document.createElement("li"), { textContent: line })));
@@ -330,7 +345,7 @@ $("save-prompts").addEventListener("click", async () => {
   $("saved").textContent = r.error ? r.error : "Saved";
   setTimeout(() => { $("saved").textContent = ""; }, 4000);
 });
-$("cap").addEventListener("input", () => { if (!running) $("cap-shown").textContent = $("cap").value; });
+$("cap").addEventListener("input", paintSettings);
 
 paintSettings();
 poll();

@@ -70,6 +70,11 @@ def prompts_error(text):
     return None
 
 
+class Server(ThreadingHTTPServer):
+    allow_reuse_address = False
+    daemon_threads = True
+
+
 class Handler(BaseHTTPRequestHandler):
     def reply(self, body, kind="application/json", code=200):
         if not isinstance(body, bytes):
@@ -123,7 +128,7 @@ def main():
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--no-browser", action="store_true")
     a = p.parse_args()
-    server = ThreadingHTTPServer(("127.0.0.1", a.port), Handler)
+    server = Server(("127.0.0.1", a.port), Handler)
     url = f"http://127.0.0.1:{a.port}/"
     print(f"hinge ui on {url} - ctrl+c to quit", flush=True)
     if not a.no_browser:
