@@ -104,6 +104,7 @@ which is gitignored. Details: [docs/usage.md](docs/usage.md).
 ├── capture/            vision model calls, window capture, opener hotkey
 ├── dating-assistant/   MCP server (TypeScript) over the shared SQLite database
 ├── docs/               documentation
+├── pixi/               static landing page (index.html)
 ├── prompts.txt         your comment list
 ├── .env.example        provider, API keys, model and emulator settings
 ├── run-hinge.ps1       emulator launcher
